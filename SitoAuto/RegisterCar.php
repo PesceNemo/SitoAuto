@@ -1,44 +1,41 @@
-<?php
-session_start();
+<?php session_start();
+if(!isset($_SESSION["User"])) {
+    header("Location: login.php");
+    exit();
+}
 
 $conn = new mysqli("192.168.60.144", "noemi_basaglia", "incenerisci.stradello.", "noemi_basaglia_auto");
-
 if ($conn->connect_error) {
-    die("Errore connessione");
+    die("Connessione fallita: " . $conn->connect_error);
 }
+if(isset($_POST["Marca"]) && isset($_POST["Modello"]) && isset($_POST["Cilindrata"]) && isset($_POST["Potenza"]) && isset($_POST["Lunghezza"]) && isset($_POST["Larghezza"])) {
+    $marca = $_POST["Marca"];
+    $modello = $_POST["Modello"];
+    $cilindrata = $_POST["Cilindrata"];
+    $potenza = $_POST["Potenza"];
+    $lunghezza = $_POST["Lunghezza"];
+    $larghezza = $_POST["Larghezza"];
+    $proprietario = $_SESSION["User"]; // <- qui il proprietario è l'utente loggato
 
-if(isset($_POST["User"]) && isset($_POST["PW"])) {
+    $stmt = $conn->prepare("INSERT INTO Auto (Marca, Modello, Cilindrata, Potenza, Lunghezza, Larghezza, Proprietario) VALUES (?, ?, ?, ?, ?, ?, ?)");
+    $stmt->bind_param("ssiiiis", $marca, $modello, $cilindrata, $potenza, $lunghezza, $larghezza, $proprietario );
 
-    $username = $_POST["User"];
-    $password = $_POST["PW"];
-
-    $check = $conn->prepare("SELECT * FROM Utenti WHERE User = ?");
-    $check->bind_param("s", $username);
-    $check->execute();
-    $result = $check->get_result();
-
-    if($result->num_rows > 0) {
-        $errore = "Username già esistente!";
+    if($stmt->execute()) {
+        $messaggio = "Auto registrata con successo!";
     } else {
-
-        $stmt = $conn->prepare("INSERT INTO Utenti (User, PW) VALUES (?, ?)");
-        $stmt->bind_param("ss", $username, $password);
-
-        if($stmt->execute()) {
-            header("Location: login.php");
-            exit();
-        } else {
-            $errore = "Errore registrazione";
-        }
+        $messaggio = "Errore durante l'inserimento";
     }
 }
+
 ?>
 
-<!DOCTYPE html>
+
+
+<<!DOCTYPE html>
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>Registrazione</title>
+    <title>Registra Auto</title>
     <style>
         * {
             box-sizing: border-box;
@@ -140,23 +137,41 @@ if(isset($_POST["User"]) && isset($_POST["PW"])) {
 
 <div class="card">
 
-    <h2>Registrazione</h2>
+    <h2>Registra Auto</h2>
 
-    <?php if(isset($errore)) echo "<div class='message'>$errore</div>"; ?>
+    <?php
+    if(isset($messaggio)) {
+        $classe = ($messaggio == "Auto registrata con successo!") ? "success" : "error";
+        echo "<div class='$classe'>$messaggio</div>";
+    }
+    ?>
 
     <form method="POST">
 
-        Username
-        <input type="text" name="User" required>
+        Marca
+        <input type="text" name="Marca" required>
 
-        Password
-        <input type="password" name="PW" required>
+        Modello
+        <input type="text" name="Modello" required>
 
-        <input type="submit" value="Registrati">
+        Cilindrata (cc)
+        <input type="number" name="Cilindrata" required>
+
+        Potenza (CV)
+        <input type="number" name="Potenza" required>
+
+        Lunghezza (mm)
+        <input type="number" name="Lunghezza" required>
+
+        Larghezza (mm)
+        <input type="number" name="Larghezza" required>
+
+
+        <input type="submit" value="Salva Auto">
 
     </form>
 
-    <a href="login.php">Hai già un account? Login</a>
+    <a href="home.php">Torna alla Home</a>
 
 </div>
 
